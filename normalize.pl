@@ -46,8 +46,7 @@ close HOMC;
 
 # read homozygote files normalize and calculate averages
 $lineNumber = 0;
-if(0){my $line;
-#while (my $line = <HOM>){
+while (my $line = <HOM>){
     chomp $line;
     $lineNumber++;
     next if $lineNumber == 1;
@@ -61,10 +60,10 @@ if(0){my $line;
 	push @av, "../fitdb/sgtc_hom_controls/$_.norm";
     }
     print " $commandString\n";
-#    system "$commandString";
+    system "$commandString";
     #average
     (my $homCAvRef, my $strainTagsRef) = &averageC(\@av);
-    #calculate difference (meanControl - hom)
+    #calculate difference (ln(hom) - ln(meanControl))
     #read normlized hom
     my @normHom;
     my @normHomT; #threshold
@@ -88,7 +87,7 @@ if(0){my $line;
 	my $above = $normHomT[$i];
 	if ($above == 1){
 	    if(${$homCAvRef}[$i] ne "NA"){
-		push @diff, ${$homCAvRef}[$i] - $normHom[$i];
+		push @diff, log($normHom[$i]) - log(${$homCAvRef}[$i]);
 	    }else{
 		push @diff, "NA";
 	    }
@@ -127,7 +126,7 @@ while (my $line = <HET>){
     system "$commandString";
     #average
     (my $hetCAvRef, my $strainTagsRef) = &averageC(\@av);
-    #calculate difference (meanControl - het)
+    #calculate difference (ln(het) - ln(meanControl))
     #read normlized het
     my @normHet;
     my @normHetT; #threshold
@@ -151,7 +150,7 @@ while (my $line = <HET>){
 	my $above = $normHetT[$i];
 	if ($above == 1){
 	    if(${$hetCAvRef}[$i] ne "NA"){
-		push @diff, ${$hetCAvRef}[$i] - $normHet[$i];
+		push @diff, log($normHet[$i]) - log(${$hetCAvRef}[$i]);
 	    }else{
 		push @diff, "NA";
 	    }
