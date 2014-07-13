@@ -588,6 +588,8 @@ bar <- barplot(orderedhB[,2],names.arg=orderedhB[,1],horiz=TRUE,xlim=c(0,0.55),x
 arrows(ci$lower,bar,ci$upper,bar,code=0)
 dev.off()
 write.csv(hb,file="../analysis/odRatio.csv")
+
+
 ########################
 # Hoepfner et al.,2014 #
 ########################
@@ -984,235 +986,76 @@ colSums((dsum[,c(1:4)]-rsum[,c(1:4)])>0)/totalL*100
 #mean percentage of het. beneficial across conditions
 mean(nsum[,1])/length(hip[,1])*100
 
+#mean percentage of extreme overdominance
+mean(nsum[,5]/nsum[,1])
 
-#higher concentration of the same compounds have larger percentage of het Beneficial
-#randomly permute the order of concentrations and see how often the number of heterozygote beneficials is monotonically increasing with an increase in the concentration
+eoH<-data.frame(condNames,concs,nsum[,5]/nsum[,1])
+eoH[order(eoH[,3]),]
+write.csv(eoH,file="~/projects/yeastOverdominance/collection/Hoepfner/odRatio.csv")
 
+
+# Overlap of hetBen across experiments
+######################################
+#Overlap hetben Hillenmeyer et al
+#--------------------------------
+#find conditions with multiple timepoints
+#calculate overlap
+path <- "~/projects/yeastOverdominance/collection/analysis/odORFs/"
+files <- character()
+files[1] <- paste(path,"23DEGREESC15oldscannerhetBen.dat",sep="")
+files[2] <- paste(path,"23DEGREESC5oldscannerhetBen.dat",sep="")
+files[3] <- paste(path,"37DEGREESC20oldscannerhetBen.dat",sep="")
+files[4] <- paste(path,"37DEGREESC5oldscannerhetBen.dat",sep="")
+files[5] <- paste(path,"5FLUOROURACIL15oldscannerhetBen.dat",sep="")
+files[6] <- paste(path,"5FLUOROURACIL20oldscannerhetBen.dat",sep="")
+files[7] <- paste(path,"5FLUOROURACIL5oldscannerhetBen.dat",sep="")
+files[8] <- paste(path,"FLOXURIDINE20oldscannerhetBen.dat",sep="")
+files[9] <- paste(path,"FLOXURIDINE5oldscannerhetBen.dat",sep="")
+files[10] <- paste(path,"YPGLYCEROL15oldscannerhetBen.dat",sep="")
+files[11] <- paste(path,"YPGLYCEROL5oldscannerhetBen.dat",sep="")
+generations <- c(15,5,20,5,15,20,5,20,5,15,5)
+env <- c("23DEGREESC","23DEGREESC","37DEGREESC","37DEGREESC","5FLUOROURACIL","5FLUOROURACIL","5FLUOROURACIL","FLOXURIDINE","FLOXURIDINE","YPGLYCEROL","YPGLYCEROL")
+#pick random 2 with the same condition but different generation and caclulate overlap
+bcomSame <- numeric(0)
+bootNumber <- 10000
+while(bootNumber > 0){
+    pair <- sample(length(files),2) #pick a pair of files (without replacements)
+    if(env[pair[1]]==env[pair[2]]){ #same condition
+        fileA <- read.table(files[pair[1]])
+        fileB <- read.table(files[pair[2]])
+        bcomSame <- append(bcomSame,length(intersect(fileA[,1],fileB[,1]))/length(union(fileA[,1],fileB[,1])))
+        bootNumber <- bootNumber - 1
+        print(bootNumber)
+    }
+}
+#pick random 2 with different condition
+bcomDiff <- numeric(0)
+bootNumber <- 10000
+while(bootNumber > 0){
+    pair <- sample(length(files),2) #pick a pair of files (without replacements)
+    if(env[pair[1]]!=env[pair[2]]){ #diff condition
+        fileA <- read.table(files[pair[1]])
+        fileB <- read.table(files[pair[2]])
+        bcomDiff <- append(bcomDiff,length(intersect(fileA[,1],fileB[,1]))/length(union(fileA[,1],fileB[,1])))
+        bootNumber <- bootNumber - 1
+        print(bootNumber)
+    }
+}
+hist(bcomSame)
+mean(bcomSame)
+hist(bcomDiff)
+mean(bcomDiff)
+wilcox.test(bcomSame,bcomDiff,alternative="greater")
+
+
+#Overlap hetben Hoepfner et al
+#------------------------------
 df <- data.frame(condID,condNames,as.numeric(concs),nsum[,1:5]) #hetben, hetdel, homben, homdel
 indexD <- duplicated(df[,1]) #compounds with only one concentration
 dpl <- unique(df[indexD,1])
 
-#calculate bootstrap values
-bootN <- 1000
-bmhetb <- matrix(nrow=length(dpl),ncol=bootN) # bootstrapped monotonically increasing
-bmhetd <- matrix(nrow=length(dpl),ncol=bootN) # rows compounds
-bmhomb <- matrix(nrow=length(dpl),ncol=bootN) # columns bootstraps
-bmhomd <- matrix(nrow=length(dpl),ncol=bootN)
-bmeo <- matrix(nrow=length(dpl),ncol=bootN)
-for(b in c(1:bootN)){
-    counter <- 1
-    for(i in dpl){
-        print(paste(b,counter))
-        ind <- which(df[,1]==i)
-        concentration <- df[ind,3]
-        if(length(concentration)<2){
-            stop() #make sure we have for all more than one concentrations
-        }
-        hetb <- df[ind,4]
-        hetd <- df[ind,5]
-        homb <- df[ind,6]
-        homd <- df[ind,7]
-        eo <- df[ind,8]
-        permuted <- sample(length(concentration))
-#        order(concentration)
-        if(length(unique(hetb)) == 1){ #if all values are equal
-            bmhetb[counter,b] <- FALSE
-        }else{
-            bmhetb[counter,b] <- all(hetb[permuted] == cummax(hetb[permuted])) #always increasing or all values equal
-        }
-        if(length(unique(hetd)) == 1){
-            bmhetd[counter,b] <- FALSE
-        }else{
-            bmhetd[counter,b] <- all(hetd[permuted] == cummax(hetd[permuted]))
-        }
-        if(length(unique(homb)) == 1){
-            bmhomb[counter,b] <- FALSE
-        }else{
-            bmhomb[counter,b] <- all(homb[permuted] == cummax(homb[permuted]))
-        }
-        if(length(unique(homd)) == 1){
-            bmhomd[counter,b] <- FALSE
-        }else{
-            bmhomd[counter,b] <- all(homd[permuted] == cummax(homd[permuted]))
-        }
-        if(length(unique(eo)) == 1){
-            bmeo[counter,b] <- FALSE
-        }else{
-            bmeo[counter,b] <- all(eo[permuted] == cummax(eo[permuted]))
-        }
-        counter <- counter + 1
-    }
-}
 
-
-#calculate real values
-mhetb <- numeric(0) 
-mhetd <- numeric(0) 
-mhomb <- numeric(0) 
-mhomd <- numeric(0) 
-meo <- numeric(0) 
-counter <- 1
-for(i in dpl){
-    print(paste(counter))
-    ind <- which(df[,1]==i)
-    concentration <- df[ind,3]
-    if(length(concentration)<2){
-        stop() #make sure we have for all more than one concentrations
-    }
-    hetb <- df[ind,4]
-    hetd <- df[ind,5]
-    homb <- df[ind,6]
-    homd <- df[ind,7]
-    eo <- df[ind,8]
-    ordered <- order(concentration)
-    if(length(unique(hetb)) == 1){ #if all values are equal
-        mhetb[counter] <- FALSE
-    }else{
-        mhetb[counter] <- all(hetb[ordered] == cummax(hetb[ordered])) #always increasing or all values equal
-    }
-    if(length(unique(hetd)) == 1){
-        mhetd[counter] <- FALSE
-    }else{
-        mhetd[counter] <- all(hetd[ordered] == cummax(hetd[ordered]))
-    }
-    if(length(unique(homb)) == 1){
-        mhomb[counter] <- FALSE
-    }else{
-        mhomb[counter] <- all(homb[ordered] == cummax(homb[ordered]))
-    }
-    if(length(unique(homd)) == 1){
-        mhomd[counter] <- FALSE
-    }else{
-        mhomd[counter] <- all(homd[ordered] == cummax(homd[ordered]))
-    }
-    if(length(unique(meo)) == 1){
-        meo[counter] <- FALSE
-    }else{
-        meo[counter] <- all(meo[ordered] == cummax(meo[ordered]))
-    }
-    counter <- counter + 1
-}
-
-#calculate the probability of observing the true values
-mean(rowMeans(bmhetb)) #probability of monotonicity across all condition
-mean(mhetb) #average monotonicity
-mean(rowMeans(bmhetd)) #probability of monotonicity across all condition
-mean(mhetd) #average monotonicity
-mean(rowMeans(bmhomb)) #probability of monotonicity across all condition
-mean(mhomb) #average monotonicity
-mean(rowMeans(bmhomd)) #probability of monotonicity across all condition
-mean(mhomd) #average monotonicity
-mean(rowMeans(bmeo),na.rm=T) #probability of monotonicity across all condition
-mean(meo,na.rm=T) #average monotonicity
-
-
-rowMeans(bmhetb) #probability of increasing for each condition
-mhetb # obsevation
-mhetb>rowMeans(bmhetb)
-#calculate a random vector (0,1) and see how often it is larger than the expected
-sum(sample(0:1,length(mhetb),replace=T)>rowMeans(bmhetb))
-
-sample(0:1,length(mhetb),replace=T)
-#sample from the multinomial and calculate how many times the true is larger than the null. This is a p-value for each measurement
-#phetb
-phetb <- numeric(length(mhetb))
-for(i in c(1:bootN)){
-    phetb <- phetb + bmhetb[,i]-mhetb
-
-}
-bmhetb[,1]-hetb
-mincr <- rowMeans(bmhetb)/sum(rowMeans(bmhetb)) #for each condition, probability of monotonically increasing
-multinomial.test(mhetb,mincr)
-
-#=========
-
-for(i in dpl){
-    ind <- which(df[,1]==i)
-    concentration <- df[ind,3]
-    hb <- df[ind,6]
-    hd <- df[ind,7]
-#    order(concentration)
-                                        #    if(length(hb)>2){
-    cors <- append(cors,cor(concentration,hd))
-#print(df[ind,])
-                                        #    print(df[ind,])
-#    }
-}
-stem(cors)
-mean(cors,na.rm=T)
-
-
-
-oso auxanei isygkentrosi meionetai o arithmos ton hetben kai ton hetdel kai to pososto ton  hetben= hetben/(hetdel+hetben)
-oso auxanei i sygentrosei auxanetai o arithmos ton homben, homdel kai to pososto ton homben
-na do poio apo ola einai statistika simantiko kanontas boostrapping
-
-perm <- function(n,k){choose(n,k) * factorial(k)}
-
-for each condition randomize the order of concentrations and calculate monotonicity (or correlation)
-#in each condition the probability of getting our answer is
-l <- length(concentration)
-1/perm(l,l)
-across conditions we have a vector of probabilities
-perform multinomial test
-#build vector of probabilities
-#and actual observations
-probs <- numeric(0)
-thetb <- numeric(0)
-thetd <- numeric(0)
-thomb <- numeric(0)
-thomd <- numeric(0)
-teo   <- numeric(0)
-for(i in dpl){
-    ind <- which(df[,1]==i)
-    if(length(concentration)<2){
-        stop() #make sure we have for all more than one concentrations
-    }
-    hetb <- df[ind,4]
-    hetd <- df[ind,5]
-    homb <- df[ind,6]
-    homd <- df[ind,7]
-    eo <- df[ind,8]
-    concentration <- df[ind,3]
-    ord <- order(concentration)
-
-                                        #true correlations
-    all(thetb[ord] == cummax(hbOrdered))
-    thetb <- append(thetb, cor(concentration,hetb))
-    thetd <- append(thetd, cor(concentration,hetd))
-    thomb <- append(thomb, cor(concentration,homb))
-    thomd <- append(thomd, cor(concentration,homd))
-    teo   <- append(teo,   cor(concentration,eo))
-    probs <- append(probs, length(concentration))
-}
-
-
-#compare to the actual number
-library(stringr)
-chmat <- str_split_fixed(unq," ",2)
-mode(chmat) <- "numeric"
-validationDF <- cbind(chmat,nsum[,2])
-uniqueCompounds <- unique(validationDF[,1])
-bm <- numeric(1000)
-for(b in c(1:1000)){
-    compound <- numeric(0)
-    monIncr <- numeric(0)
-    for(i in uniqueCompounds){
-        index <- which(validationDF[,1] == i)
-        if(length(index)>1){ #if there are multiple concentrations per compound
-            concentrations <- validationDF[index,2]
-            hb <- validationDF[index,3]
-            hbOrdered <- hb[order(concentrations)]
-            #hbOrdered <- sample.int(length(concentrations))
-            compound <- append(compound,i)
-            monIncr <- append(monIncr, all(hbOrdered == cummax(hbOrdered)))
-        }
-    }
-    bm[b] <- sum(monIncr)/length(monIncr)*100
-}
-stem(bm)
-
-#compare overlap of heterozygous beneficial across compounds and across conditoins
+#compare overlap of heterozygous beneficial across compounds and across conditions
 path <- "~/projects/yeastOverdominance/collection/Hoepfner/odORFs/"
 files <- dir(path=path, pattern="*hetBen.dat")
 #find conditions for which we have more than one concentration
@@ -1255,30 +1098,353 @@ while(bootNumber > 0){
 }
 
 wilcox.test(bcomSame,bcomDiff,alternative="greater")
-pick two random files and read their hetBen files
-length of intersection of two files.
-if they share compound save it to one list and if not to another
-repeat and compare the two lists
 
-write.table(data.frame(unq,nsum[,1]),file="odRatioHoepfner.csv",sep=" ")
-strsplit(unq," ")
 
-mean(nsum[,5]/nsum[,1])
-png("temp.png")
-hist(nsum[,5]/nsum[,1])
-abline(v=mean(nsum[,5]/nsum[,1]))
+#Overlap between datasets
+#-----------------------
+
+#common conditions
+pathHop <- "~/projects/yeastOverdominance/collection/Hoepfner/odORFs/"
+pathHil <- "~/projects/yeastOverdominance/collection/analysis/odORFs/"
+fileHil <- numeric()
+fileHop <- numeric()
+
+fileHil[1] <- "ACLACINOMYCINA20newscannerhetBen.dat"
+fileHil[2] <- "COCL220newscannerhetBen.dat"
+fileHil[3] <- "CUSO420newscannerhetBen.dat"
+fileHil[4] <- "CYCLOHEXIMIDE20newscannerhetBen.dat"
+fileHil[5] <- "LATRUNCULIN20newscannerhetBen.dat"
+fileHil[6] <- "MECHLORETHAMINE20oldscannerhetBen.dat"
+fileHil[7] <- "HGCL220newscannerhetBen.dat"
+fileHil[8] <- "METHOTREXATE20oldscannerhetBen.dat"
+fileHil[9] <- "MYCOPHENOLICACID20oldscannerhetBen.dat"
+fileHil[10] <- "RAPAMYCIN20newscannerhetBen.dat"
+fileHil[11] <- "ZNCL220newscannerhetBen.dat"
+compoundHil <- c("AclacinomycinA","CoCl2","CuSO4","Cycloheximide","Latrunculin","Mechlorethamine","HgCl2","Methotrexate","MycophenolicAcid","Rapamycin","ZnCl2")
+
+fileHop[1] <- "Aclacinomycin A, Aclarubicin.4.857hetBen.dat"
+fileHop[2] <- "Cobalt(Il)-Chlorid.200hetBen.dat"
+fileHop[3] <- "Cobalt(Il)-Chlorid.92.63hetBen.dat"
+fileHop[4] <- "Copper(II)Sulfate.120hetBen.dat"
+fileHop[5] <- "Copper(II)Sulfate.200hetBen.dat"
+fileHop[6] <- "Copper(II)Sulfate.50hetBen.dat"
+fileHop[7] <- "Copper(II)Sulfate.75hetBen.dat"
+fileHop[8] <- "Cycloheximide.0.03hetBen.dat"
+fileHop[9] <- "Cycloheximide.0.05hetBen.dat"
+fileHop[10] <- "Latrunculin A.0.7hetBen.dat"
+fileHop[11] <- "Latrunculin A.0.9hetBen.dat"
+fileHop[12] <- "Mechlorethamine.95hetBen.dat"
+fileHop[13] <- "Mercury(II) chloride.35hetBen.dat"
+fileHop[14] <- "Mercury(II) chloride.50hetBen.dat"
+fileHop[15] <- "Methotrexate.200hetBen.dat"
+fileHop[16] <- "Mycophenolic Acid (Myfortic).100hetBen.dat"
+fileHop[17] <- "Mycophenolic Acid (Myfortic).120hetBen.dat"
+fileHop[18] <- "Mycophenolic Acid (Myfortic).70hetBen.dat"
+fileHop[19] <- "Rapamycin.0.001hetBen.dat"
+fileHop[20] <- "Rapamycin.2e-04hetBen.dat"
+fileHop[21] <- "Rapamycin.5e-04hetBen.dat"
+fileHop[22] <- "Zinc Chloride.20000hetBen.dat"
+fileHop[23] <- "Zinc Chloride.200hetBen.dat"
+fileHop[24] <- "Zinc Chloride.40000hetBen.dat"
+compoundHop <- c("AclacinomycinA","CoCl2","CoCl2","CuSO4","CuSO4","CuSO4","CuSO4","Cycloheximide","Cycloheximide","Latrunculin","Latrunculin","Mechlorethamine","HgCl2","HgCl2","Methotrexate","MycophenolicAcid","MycophenolicAcid","MycophenolicAcid","Rapamycin","Rapamycin","Rapamycin","ZnCl2","ZnCl2","ZnCl2")
+
+#pick one file from each dataset and calculate overlap
+
+overlap <- function(fileHil,fileHop){
+    ORFHil1 <- read.table(paste(pathHil,fileHil,sep=""))
+    ORFHop1 <- read.table(paste(pathHop,fileHop,sep=""))
+    o <- length(intersect(ORFHil1[,1],ORFHop1[,1]))
+    n <- length(union(ORFHil1[,1],ORFHop1[,1]))
+    c(o/n,n)
+}
+
+overlap(fileHil[1],fileHop[1])
+
+overlap(fileHil[2],fileHop[2])
+overlap(fileHil[2],fileHop[3])
+
+overlap(fileHil[3],fileHop[4])
+overlap(fileHil[3],fileHop[5])
+overlap(fileHil[3],fileHop[6])
+overlap(fileHil[3],fileHop[7])
+
+overlap(fileHil[4],fileHop[8])
+overlap(fileHil[4],fileHop[9])
+
+overlap(fileHil[5],fileHop[10])
+overlap(fileHil[5],fileHop[11])
+
+overlap(fileHil[6],fileHop[12])
+
+overlap(fileHil[7],fileHop[13])
+overlap(fileHil[7],fileHop[14])
+
+overlap(fileHil[8],fileHop[15])
+
+overlap(fileHil[9],fileHop[16])
+overlap(fileHil[9],fileHop[17])
+overlap(fileHil[9],fileHop[18])
+
+overlap(fileHil[10],fileHop[19])
+overlap(fileHil[10],fileHop[20])
+overlap(fileHil[10],fileHop[21])
+
+overlap(fileHil[11],fileHop[22])
+overlap(fileHil[11],fileHop[23])
+overlap(fileHil[11],fileHop[24])
+
+
+#same compounds
+bSame <- numeric(0)
+bootNumber <- 10000
+while(bootNumber > 0){
+    indexHil <- sample(length(compoundHil),1)
+    indexHop <- sample(length(compoundHop),1)
+    if(compoundHil[indexHil] == compoundHop[indexHop]){
+        ORFHil <- read.table(paste(pathHil,fileHil[indexHil],sep=""))
+        ORFHop <- read.table(paste(pathHop,fileHop[indexHop],sep=""))
+        bSame <- append(bSame,length(intersect(ORFHil[,1],ORFHop[,1]))/length(union(ORFHil[,1],ORFHop[,1])))
+        bootNumber <- bootNumber - 1
+        print(bootNumber)
+    }   
+}
+
+#different compounds
+bDiff <- numeric(0)
+bootNumber <- 10000
+while(bootNumber > 0){
+    indexHil <- sample(length(compoundHil),1)
+    indexHop <- sample(length(compoundHop),1)
+    if(compoundHil[indexHil] != compoundHop[indexHop]){
+        ORFHil <- read.table(paste(pathHil,fileHil[indexHil],sep=""))
+        ORFHop <- read.table(paste(pathHop,fileHop[indexHop],sep=""))
+        bDiff <- append(bDiff,length(intersect(ORFHil[,1],ORFHop[,1]))/length(union(ORFHil[,1],ORFHop[,1])))
+        bootNumber <- bootNumber - 1
+        print(bootNumber)
+    }   
+}
+
+mean(bSame)
+mean(bDiff)
+wilcox.test(bSame,bDiff,alternative="greater")
+
+
+################################33
+#  correlations
+################################
+
+##                                         #generate random data
+## l <- 5000
+## d <- rnorm(l)
+## dfr <- data.frame(d,d+rnorm(l))
+i<-13
+filePath <- paste(path,files[i],sep="")
+a<-read.table(filePath)
+dfr <- data.frame(a$V3,a$V2) #het, hom
+
+hetD<-quantile(dfr[,1],probs=c(1/3,2/3),na.rm=T,names=F)
+delIndex<-which(dfr[,1]<hetD[1])
+neutIndex <- which(dfr[,1]>hetD[1] & dfr[,1]<hetD[2])
+benIndex<-which(dfr[,1]>hetD[2])
+
+fdel<-lm(dfr[delIndex,2]~dfr[delIndex,1])
+fneut<-lm(dfr[neutIndex,2]~dfr[neutIndex,1])
+fben<-lm(dfr[benIndex,2]~dfr[benIndex,1])
+
+plot(dfr[,2],dfr[,1],pch=19,cex=0.5,col="#00000050",ylab="homozygote fitness",xlab="")
+abline(v=hetD)
+abline(a=0,b=1) #diagonal
+
+abline(fdel,col="blue")
+abline(fben,col="red")
+abline(fneut,col="black",lty=3)
+
+#---------------
+#read genes from Daniel and Dglucose
+path <- "~/projects/yeastOverdominance/collection/Hoepfner/odORFs/"
+g1o <- read.table(paste(path,"D-Glucose (starvation).0.25eo.dat",sep=""))
+g1b <- read.table(paste(path,"D-Glucose (starvation).0.25hetBen.dat",sep=""))
+g2o <- read.table(paste(path,"D-Glucose (starvation).0.5eo.dat",sep=""))
+g2b <- read.table(paste(path,"D-Glucose (starvation).0.5hetBen.dat",sep=""))
+g3o <- read.table(paste(path,"D-Glucose (starvation).0.75eo.dat",sep=""))
+g3b <- read.table(paste(path,"D-Glucose (starvation).0.75hetBen.dat",sep=""))
+ks <- read.table("~/projects/yeastOverdominance/chemostat/sequencing/colony/mutations/hapdip/systName.csv",sep="\t")
+
+intersect(g1b$V1,ks$V1)
+[1] "YDL194W" "YER133W" "YJR115W" "YPR049C"
+intersect(g2b$V1,ks$V1)
+1] "YAL056W" "YAR019C" "YGL250W" "YIR023W" "YNL098C" "YNR031C" "YOR307C"
+[8] "YOR360C" "YPL016W"
+intersect(g3b$V1,ks$V1)
+[1] "YAR035W" "YNL098C"
+also MIG2/YGL209W present
+
+> intersect(g1o$V1,g2o$V1)
+[1] "YER017C" "YIL036W" "YMR063W"
+> intersect(g1o$V1,g3o$V1)
+[1] "YER017C"
+> intersect(g2o$V1,g3o$V1)
+[1] "YER017C"
+> 
+
+
+#           AFG3 common in all
+#  YER017C
+                                        # Old
+############################################33
+#VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVvv
+#########################################
+
+
+#####################################################
+# increasing proportion of extreme overdominance
+###################################################
+
+library(stringr)
+library(binom)
+library(Kendall)
+#read files
+dubious<-read.table("~/projects/yeastOverdominance/collection/Agrawal.Whitlock/dubious120.csv",header=T)
+path <- "~/projects/yeastOverdominance/collection/analysis/fitComp/"
+files <- dir(path,pattern="*.[ud][as].dat")
+pdf("temp.pdf")
+par(las=3,bty="l",mfcol=c(2,2))         
+eodMed <- numeric(0)
+MKtE <- numeric(0)
+MKpE <- numeric(0)
+for(i in files){
+    print(i)
+    filePath <- paste(path,i,sep="")
+    a<-read.table(filePath)
+    a$V1 <- str_extract(a$V1,"[^:]*") 
+    ind<-which(a$V1%in%dubious$dubiousORFS.Whitlock)
+                                        #find quantiles for dubious:
+    hetD<-quantile(a$V3[ind],probs=c(.05,.95),na.rm=T,names=F)
+    homD<-quantile(a$V2[ind],probs=c(.05,.95),na.rm=T,names=F)
+    reod <- numeric(0) #ratio of extreme overdominance
+    js <- numeric(0)
+    sampleSize <- numeric(0)
+    r <- range(a[,3]) #range of heterozygous values
+    windowSize <- abs(r[2]-2[1])/10
+    for(j in seq(from=r[1],to=r[2],length.out=100)){
+        index <- which(a[,3]>(j-windowSize/2) & a[,3]<(j+windowSize/2)) #window
+        n <- length(a[index,1])
+        #ratio of extreme overdominance
+        if(n<1){
+            pextr <- 0
+        }else{
+            pextr <- sum(a[index,2]<homD[1]) / n
+        }
+        reod <- append(reod,pextr) #ratio of extreme overdominance
+        sampleSize <- append(sampleSize,n)
+        js <- append(js,j)
+    }
+    seriesE <- reod[(length(reod)/2):length(reod)]
+    testResultE<-MannKendall(seriesE)
+    MKtE <- append(MKtE, testResultE$tau)
+    MKpE <- append(MKpE, testResultE$sl)
+    reod[which(is.nan(reod))]<-0
+    eeb <- binom.confint(reod*sampleSize,sampleSize, method="asymptotic")
+    if(1){
+        plot(a[,3],a[,2],cex=.1, col="#00000050")
+        abline(v=hetD,col="brown",lty=3)
+        abline(h=homD,col="brown",lty=3)
+        homDel <- which(a[,2]<homD[1]) #homozygously deleterious
+        hetDel <- which(a[,3]<hetD[1]) #heterozygously deleterious
+        homBen <- which(a[,2]>homD[2]) #homozygously beneficial
+        hetBen <- which(a[,3]>hetD[2]) #heterozygously beneficial
+        points(a[homDel,3],a[homDel,2],col="brown",pch=19)
+        plot(js,reod,type="l",ylim=c(0,1),main=i,xlab="heterozygote fitness",ylab="heterozygote advantage")
+        points(js,eeb$upper,lty=3,type="l",col="red")
+        points(js,eeb$lower,lty=3,type="l",col="red")
+        abline(v=hetD,col="brown",lty=c(3,3,2,1,2,3,3))
+    }
+}
 dev.off()
+#adjust for multiple testing
+extreme.od <- data.frame(files,MKtE,p.adjust(MKpE))
+#in which conditions extreme overdominance significantly increases?
+signIncr <- extreme.od[which(extreme.od$MKtE>0 & extreme.od$p.adjust.MKpE.<0.05),]
 
-Camptothecin CMBID = 1109
 
-grep("1109",unq)
-[1] 1214
-i<-unq[1214]
-counter <- 1214
-TOP1:YOL006C
-which(hip[,1]=="YOL006C")
-5573
-filteredORFs[5573]
+
+
+MKtE <- numeric(0)
+MKpE <- numeric(0)
+l <- 5000
+
+for(i in c(1:100)){
+    rod<-numeric(0)  #ratio of homozygote deleterious
+    js <- numeric(0)
+    sampleSize <- numeric(0)
+                                           #with random data
+#   dfr <- data.frame(rnorm(l),rnorm(l))
+    #with real data
+    filePath <- paste(path,files[i],sep="")
+    a<-read.table(filePath)
+    dfr <- data.frame(a$V3,a$V2) #het, hom
+    r <- range(dfr[,1])
+    windowSize<-abs(r[2]-r[1])/10
+    for(j in seq(from=r[1],to=r[2],length.out=100)){
+        index <- which(dfr[,1]>j)
+        n <- length(dfr[index,1])
+        p <- sum(dfr[index,2]<mean(dfr[,2])) / n
+        rod <- append(rod,p)
+        sampleSize <- append(sampleSize,n)
+        js <- append(js,j)
+    }
+    rod[which(is.nan(rod))]<-0
+    series <- rod[(length(rod)/2):length(rod)]
+    testResult<-MannKendall(series)
+    eb <- binom.confint(rod*sampleSize,sampleSize,method="asymptotic") #default 0.95 conf int
+    MKtE <- append(MKtE, testResult$tau)
+    MKpE <- append(MKpE, testResult$sl)
+    print(i)
+}
+extreme.od <- data.frame(MKtE,p.adjust(MKpE))
+#in which conditions extreme overdominance significantly increases?
+length(extreme.od[which(extreme.od$MKtE>0 & extreme.od$p.adjust.MKpE.<0.05),1])
+length(extreme.od[which(extreme.od$MKtE<0 & extreme.od$p.adjust.MKpE.<0.05),1])
+
+plot(dfr[,2],dfr[,1],pch=19,cex=0.5,col="#00000050",ylab="homozygote fitness",xlab="")
+abline(h=mean(dfr[,2]))
+plot(js,rod,type="l",xlab="heterozygote fitness",ylab="Ratio of homozygously deleterious strains")
+points(js,eb$upper,lty=3,type="l")
+points(js,eb$lower,lty=3,type="l")
+abline(v=mean(dfr[,1]),lty=3)
+
+
+
+#####################################33
+rod<-numeric(0)
+js <- numeric(0)
+sampleSize <- numeric(0)
+dfr <- data.frame(a$V3,a$V2)
+r <- range(dfr[,1])
+windowSize<-abs(r[2]-r[1])/10
+for(j in seq(from=r[1],to=r[2],length.out=100)){
+    index <- which(dfr[,1]>(j-windowSize/2) & dfr[,1]<(j+windowSize/2))
+    n <- length(dfr[index,1])
+    if(n<3){
+        next
+    }
+    p <- sum(dfr[index,2]<homD[1]) / n
+    q <- 1-p
+    rod <- append(rod,p)
+    sampleSize <- append(sampleSize,n)
+    js <- append(js,j)
+}
+series <- rod[(length(rod)/2):length(rod)]
+testResult<-MannKendall(series)
+eb <- binom.confint(rod*sampleSize,sampleSize,method="asymptotic") #default 0.95 conf int
+
+plot(a$V3,a$V2,pch=19,cex=0.5,col="#00000050",ylab="homozygote fitness",xlab="")
+
+plot(js,rod,type="l",xlab="heterozygote fitness",ylab="Ratio of homozygously deleterious strains")
+points(js,eb$upper,lty=3,type="l")
+points(js,eb$lower,lty=3,type="l")
+abline(v=mean(a$V3),lty=3)
+
 
 ################################################\
 # -------------------------
