@@ -2,12 +2,7 @@
 ## -----------------------------
 ##     analysis of deletion collection data. Separately for Hillenmeyer etal 2008 and Hoepfner et al., 2014 but with similar methodology
 
-## - Match homozygote and heterozygote experiments and find multidrug resistance distributions
-## - Exclude deletions that seem to be beneficial across multiple conditions
-## - Calculate confidence intervals for dubious ORFs and random subset of ORFs
-## - Find extreme overdominant
-
-
+ 
 #read required libraries
 library(stringr)
 library(binom)
@@ -80,8 +75,19 @@ for (r in c(1:1000)){
     hb <- hist(rpois(length(mdr),mean(mdr)),breaks=c(0:60),plot=FALSE)
     bootPoisson <- rbind(bootPoisson,hb$counts)
 }
+notTrusted <- names(mdr)[mdr>10] #Hil
+
+hopnt<-read.table("~/projects/yeastOverdominance/collection/Hoepfner/HopNotTrusted.dat")
+hilnt<-read.table("~/projects/yeastOverdominance/collection/analysis/HilNotTrusted.dat")
+therio <- union(hopnt$V1,hilnt$V1)
+## why therio?
+## > length(therio)
+## [1] 666
+
+notTrusted<-therio
                                         #each row is a bootstrap. for each integer from min to max get mean and quartiles
-png("~/projects/yeastOverdominance/manuscript/figures/multidrugHillenmeyer.png")
+
+pdf("~/projects/dissertation/thesis/img/chapter3/multidrugHillenmeyer.pdf")
 par(las=1,bty="l")
 heights <- numeric(0)
 ul <- numeric(0)
@@ -97,10 +103,56 @@ logHeights[which(!is.finite(logHeights))]<-0
 plot(h$mids+0.5,log10(h$counts),pch=19,type="n",ylab="log(# of strains)",xlab="# of experiments resistant",xlim=c(0,45)) #set axes etc
 rect(h$mids,0,h$mids+1,logHeights,col="grey")
 arrows(h$mids+.5,log10(ll),h$mids+.5,log10(ul),code=0,angle=90)
-points(h$mids+0.5,log10(h$counts),pch=19,type="o")
+points(h$mids+0.5,log10(h$counts),pch=19)
 dev.off()
-    
+
+#plot for both datasets
+#-----------------------
+pdf("~/projects/dissertation/thesis/img/chapter3/multidrug.pdf",width=10,height=6)
+par(las=1,bty="l",mfrow=c(1,2))
+heights <- numeric(0)
+ul <- numeric(0)
+ll <- numeric(0)
+for(i in c(1:60)){
+    qboot <- quantile(bootPoisson[,i],probs=c(0.25,0.5,0.75),names=F)
+    heights <- append(heights,qboot[2])
+    ul <- append(ul,qboot[3])
+    ll <- append(ll,qboot[1])
+}
+logHeights <- log10(heights)
+logHeights[which(!is.finite(logHeights))]<-0
+plot(h$mids+0.5,log10(h$counts),pch=19,type="n",ylab="log(# of strains)",xlab="# of experiments resistant",xlim=c(0,45)) #set axes etc
+rect(h$mids,0,h$mids+1,logHeights,col="grey")
+arrows(h$mids+.5,log10(ll),h$mids+.5,log10(ul),code=0,angle=90)
+points(h$mids+0.5,log10(h$counts),pch=19)
+#-----------
+load("~/projects/yeastOverdominance/collection/Hoepfner/multidrugHop.h.dat")
+load("~/projects/yeastOverdominance/collection/Hoepfner/multidrugHop.filteredORFs.dat")
+bootPoisson <- matrix(nrow=1000,ncol=600)
+for (r in c(1:1000)){
+    hb <- hist(rpois(length(filteredORFs[filteredORFs!=0]),mean(filteredORFs[filteredORFs!=0])),breaks=c(0:600),plot=F)
+    bootPoisson[r,] <- hb$counts
+}
+heights <- numeric(0)
+ul <- numeric(0)
+ll <- numeric(0)
+for(i in c(1:600)){
+  qboot <- quantile(bootPoisson[,i],probs=c(0.25,0.5,0.75),names=F)
+  heights <- append(heights,qboot[2])
+  ul <- append(ul,qboot[3])
+  ll <- append(ll,qboot[1])
+}
+logHeights <- log10(heights)
+logHeights[which(!is.finite(logHeights))]<-0
+plot(h$mids+0.5,log10(h$counts),pch=19,type="n",ylab="log(# of strains)",xlab="# of experiments resistant",xlim=c(0,450)) #set axes etc
+rect(h$mids,0,h$mids+1,logHeights,col="grey",border="grey")
+arrows(h$mids+.5,log10(ll),h$mids+.5,log10(ul),code=0,angle=90)
+points(h$mids+0.5,log10(h$counts),pch=19)
+dev.off()
+
+
 notTrusted <- names(mdr)[mdr>10]
+write.table(notTrusted,file="~/projects/yeastOverdominance/collection/analysis/HilNotTrusted.dat",quote=F,row.names=F,col.names=F)
 
 # second pass: dubious and random sets
 #-------------------------------------
@@ -273,6 +325,7 @@ for(i in conditions$V1){
     dshom <- rbind(dshom, ds.homD)
     print(i)
 }
+
                                         #compare upper CI
           #   neutral        dubious      random
 muahom <- data.frame(uahom[,3], duahom[,3],ruahom[,3])
@@ -317,33 +370,39 @@ dsdfhom <- data.frame(dshom[,3] - dshom[,1], ddshom[,3]-ddshom[,1],rdshom[,3]-rd
 (sum(uadfhom[,1]-uadfhom[,2]<0)/111*100 +
 sum(dadfhom[,1]-dadfhom[,2]<0)/111*100 +
 sum(usdfhom[,1]-usdfhom[,2]<0)/111*100 +
-sum(dsdfhom[,1]-dsdfhom[,2]<0)/111*100)/4
+sum(dsdfhom[,1]-dsdfhom[,2]<0)/111*100)/4 # Homozygotes: neutral ORFs set range - dubious ORFs set range
+#[1] 98.64865
 
 (sum(uadfhom[,1]-uadfhom[,3]<0)/111*100 +
 sum(dadfhom[,1]-dadfhom[,3]<0)/111*100 +
 sum(usdfhom[,1]-usdfhom[,3]<0)/111*100 +
-sum(dsdfhom[,1]-dsdfhom[,3]<0)/111*100)/4
+sum(dsdfhom[,1]-dsdfhom[,3]<0)/111*100)/4 #Homozygotes: range - range Random
+#[1] 97.74775
 
 (sum(uadfhom[,2]-uadfhom[,3]<0)/111*100 +
 sum(dadfhom[,2]-dadfhom[,3]<0)/111*100 +
 sum(usdfhom[,2]-usdfhom[,3]<0)/111*100 +
-sum(dsdfhom[,2]-dsdfhom[,3]<0)/111*100)/4
+sum(dsdfhom[,2]-dsdfhom[,3]<0)/111*100)/4 #Homozygotes: range dubious - range random
+#[1] 75
 
 
 (sum(uadfhet[,1]-uadfhet[,2]<0)/111*100 +
 sum(dadfhet[,1]-dadfhet[,2]<0)/111*100 +
 sum(usdfhet[,1]-usdfhet[,2]<0)/111*100 +
-sum(dsdfhet[,1]-dsdfhet[,2]<0)/111*100)/4
+sum(dsdfhet[,1]-dsdfhet[,2]<0)/111*100)/4 #Heterozygotes
+#[1] 59.23423
 
 (sum(uadfhet[,1]-uadfhet[,3]<0)/111*100 +
 sum(dadfhet[,1]-dadfhet[,3]<0)/111*100 +
 sum(usdfhet[,1]-usdfhet[,3]<0)/111*100 +
 sum(dsdfhet[,1]-dsdfhet[,3]<0)/111*100)/4
+#[1] 56.75676
 
 (sum(uadfhet[,2]-uadfhet[,3]<0)/111*100 +
 sum(dadfhet[,2]-dadfhet[,3]<0)/111*100 +
 sum(usdfhet[,2]-usdfhet[,3]<0)/111*100 +
 sum(dsdfhet[,2]-dsdfhet[,3]<0)/111*100)/4
+#[1] 49.54955
 
 # third pass 
 #-------------
@@ -577,6 +636,13 @@ for(i in conditions$V1){
     counter <- counter + 1
 }
 
+#mean extreme overdominance
+mean(eoL/hetBenL)*100
+# [1] 5.670341
+mean(eoD/hetBenD)*100
+# [1] 3.415634
+mean(eoR/hetBenR)*100
+#[1] 2.628345
 
 png("eoRatioHillenmeyer.png",height=800,width=640)
 par(las=1,bty="l",mai=c(.5,3,0,0.2),mgp=c(1.5,0.5,0),cex=0.8)
@@ -587,7 +653,130 @@ ci <- binom.confint(orderedhB[,3],orderedhB[,4],method="exact")
 bar <- barplot(orderedhB[,2],names.arg=orderedhB[,1],horiz=TRUE,xlim=c(0,0.55),xlab="extreme overdominance")
 arrows(ci$lower,bar,ci$upper,bar,code=0)
 dev.off()
-write.csv(hb,file="../analysis/odRatio.csv")
+write.csv(hb,file="~/projects/yeastOverdominance/collection/analysis/odRatio.csv",row.names=F)
+
+l <- length(hb[,1])
+pdf("eoRatioHillenmeyer.pdf")
+par(las=1,bty="l")
+orderedHi <- hb[order(hb[,2]),]
+ci <- binom.confint(orderedHi[,3],orderedHi[,4],method="exact")
+plot(100*orderedHi[,2],ylab="extreme overdominance (%)",xlab="conditions",type="l",ylim=c(0,50))
+polygon(c(c(1:l),c(l:1)),c(ci$lower,rev(ci$upper))*100,col="grey60",border=NA)
+points(orderedHi[,2]*100,type="l",lwd=2)
+dev.off()
+
+#fourth pass
+#-----------
+## for each condition
+## fot 1000 repeats
+#   randomly split in half the neutral ORFs set
+#   use the first half as a set of neutral ORFs and the other will be tested to see how different they are
+#   pick 60 random gene deletion strains excluding the 60 of the first subset
+#  find how many of the second set are considered extreme overdominant and how many of the random ones
+#  compare the overlap of the 60 subset to the 60 random to extreme overdominance and hetben
+#  we expect that the 60 random should more often be extreme overdominant and het ben than the 60 from the second subset
+# this is true for XXX80% of eo and YYY29% of het ben
+maxJ <- 1000
+Weo <- numeric(0)
+Whb <- numeric(0)
+for(i in conditions$V1){
+    ua <- read.table(paste("~/projects/yeastOverdominance/collection/analysis/fitComp/",i,".ua.dat",sep=""),header=F)
+    da <- read.table(paste("~/projects/yeastOverdominance/collection/analysis/fitComp/",i,".da.dat",sep=""),header=F)
+    us <- read.table(paste("~/projects/yeastOverdominance/collection/analysis/fitComp/",i,".us.dat",sep=""),header=F)
+    ds <- read.table(paste("~/projects/yeastOverdominance/collection/analysis/fitComp/",i,".ds.dat",sep=""),header=F)
+    ua$V1 <- str_extract(ua$V1,"[^:]*")
+    us$V1 <- str_extract(us$V1,"[^:]*")
+    da$V1 <- str_extract(da$V1,"[^:]*")
+    ds$V1 <- str_extract(ds$V1,"[^:]*")
+    allORF <- unique(intersect(intersect(ua$V1,us$V1),intersect(da$V1,ds$V1)))
+    eoLN <- numeric(0)
+    hetBenLN <- numeric(0)
+    eoLR <- numeric(0)
+    hetBenLR <- numeric(0)
+    totalLN <- numeric(0)
+    for (j in c(1:maxJ)){
+        halph <- sample(dubious$dubiousORFS.Whitlock,60)  # subsample 60 from neutral set
+        rest <- setdiff(dubious$dubiousORFS.Whitlock,halph) #the rest
+        rrest <- sample(setdiff(allORF,halph),60) #random other
+        ua.ind<-which(ua$V1%in%halph)
+        da.ind<-which(da$V1%in%halph)
+        us.ind<-which(us$V1%in%halph)
+        ds.ind<-which(ds$V1%in%halph)
+
+        ua.hetD <- quantile(ua$V3[ua.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)
+        ua.homD <- quantile(ua$V2[ua.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)
+        da.hetD <- quantile(da$V3[da.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)
+        da.homD <- quantile(da$V2[da.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)
+        us.hetD <- quantile(us$V3[us.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)
+        us.homD <- quantile(us$V2[us.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)
+        ds.hetD <- quantile(ds$V3[ds.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)
+        ds.homD <- quantile(ds$V2[ds.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)
+        ## calculate extreme overdominance
+                                        #heterozygously beneficial
+        ua.hetBen <- which(ua$V3>ua.hetD[2])
+                                        #homozygously deleterious
+        ua.homDel <- which(ua$V2<ua.homD[1])
+
+        da.hetBen <- which(da$V3>da.hetD[2])
+        da.homDel <- which(da$V2<da.homD[1])
+        us.hetBen <- which(us$V3>us.hetD[2])
+        us.homDel <- which(us$V2<us.homD[1])
+        ds.hetBen <- which(ds$V3>ds.hetD[2])
+        ds.homDel <- which(ds$V2<ds.homD[1])
+
+        ua.eo <- intersect(ua.hetBen,ua.homDel)
+        da.eo <- intersect(da.hetBen,da.homDel)
+        us.eo <- intersect(us.hetBen,us.homDel)
+        ds.eo <- intersect(ds.hetBen,ds.homDel)
+        allORFs <- unique(c(ua$V1,da$V1,us$V1,ds$V1))
+        uaBool <- allORFs %in% ua$V1
+        daBool <- allORFs %in% da$V1
+        usBool <- allORFs %in% us$V1
+        dsBool <- allORFs %in% ds$V1
+        barcodeRepr <- uaBool+daBool+usBool+dsBool #how many barcodes we have for each deletion
+                                        #for each ORF in allORFs:
+        barcodehetBen <- allORFs %in% ua[ua.hetBen,1] + allORFs %in% us[us.hetBen,1] + allORFs %in% da[da.hetBen,1] + allORFs %in% ds[ds.hetBen,1]
+        
+        barcodehomDel <- allORFs %in% ua[ua.homDel,1] + allORFs %in% us[us.homDel,1] + allORFs %in% da[da.homDel,1] + allORFs %in% ds[ds.homDel,1]
+        
+        barcodeeo <- allORFs %in% ua[ua.eo,1] + allORFs %in% da[da.eo,1] + allORFs %in% us[us.eo,1] + allORFs %in% ds[ds.eo,1]
+        
+        hetBen <- allORFs[barcodehetBen>minBarNo & barcodehetBen/barcodeRepr == 1]
+        homDel <- allORFs[barcodehomDel>minBarNo & barcodehomDel/barcodeRepr == 1]
+        eo <- allORFs[barcodeeo>minBarNo & barcodeeo/barcodeRepr == 1]
+        
+        YPDdel.hetBen <- which(hetBen %in% YPDdel[,1])
+        YPDben.hetBen <- which(hetBen %in% YPDben[,1])
+        YPDdel.eo <- which(eo %in% YPDdel[,1])
+        YPDben.eo <- which(eo %in% YPDben[,1])
+        
+                                        #filter out MDR ORFs
+        hetBen <- setdiff(hetBen,notTrusted)
+        eo <- setdiff(eo,notTrusted)
+        
+#filter out YPD beneficial or deleterious mutations
+        hetBen <- setdiff(hetBen,YPDdel.hetBen)
+        hetBen <- setdiff(hetBen,YPDben.hetBen)
+        eo <- setdiff(eo,YPDdel.eo)
+        eo <- setdiff(eo,YPDben.eo)
+
+        #how many are in the rest 60 and how many are in a random sample of 60
+        eoLN <- append(eoLN,sum(rest%in%eo))
+        eoLR <- append(eoLR,sum(rrest%in%eo))
+        hetBenLN <- append(hetBenLN,sum(rest%in%hetBen))
+        hetBenLR <- append(hetBenLR,sum(rrest%in%hetBen))
+                                        #        totalLN <- append(totalLN,length(allORFs))
+    }
+    Weo <- append(Weo,wilcox.test(eoLN,eoLR,alternative="less")$p.value)
+    Whb <- append(Whb,wilcox.test(hetBenLN,hetBenLR,alternative="less")$p.value)
+    print(paste(i))
+}
+sum(p.adjust(Weo)<0.05)/length(Weo)*100
+sum(p.adjust(Whb)<0.05)/length(Whb)*100
+#with old notTrusted 123
+#[1] 80.18018
+#[1] 29.72973
+
 
 
 ########################
@@ -607,6 +796,8 @@ allDubious <-read.table("~/projects/yeastOverdominance/collection/sgd/dubious.ts
 d<-read.table("~/projects/yeastOverdominance/collection/Agrawal.Whitlock/dubious120.csv",header=T)
 dI<-which(hop[,1]%in%d[,1]) # 120 neutrals
 n<-read.csv("~/projects/yeastOverdominance/collection/Hoepfner/compoundNames.csv") 
+YPDdel <- read.csv("~/projects/yeastOverdominance/collection/Deutschbauer_etal/TableS2.csv")
+YPDben <- read.csv("~/projects/yeastOverdominance/collection/Sliwa_Korona/adaptive",header=FALSE)
 
 #first pass find MDR
 #--------------------
@@ -676,6 +867,8 @@ for(i in unq){ #for each combination.
 
 #make plot of multidrug resistance
 h <- hist(filteredORFs,breaks=c(0:600),plot=F)
+save(h,file="multidrugHop.h.dat")
+save(filteredORFs,file="multidrugHop.filteredORFs.dat")
 
 #estimate Poisson distribution with the same mean
 bootPoisson <- matrix(nrow=1000,ncol=600)
@@ -685,7 +878,7 @@ for (r in c(1:1000)){
 }
 
 
-png("~/projects/yeastOverdominance/manuscript/figures/multidrugHoepfner.png")
+pdf("~/projects/dissertation/thesis/img/chapter3/multidrugHoepfner.pdf")
 par(las=1,bty="l")
 heights <- numeric(0)
 ul <- numeric(0)
@@ -699,12 +892,14 @@ for(i in c(1:600)){
 logHeights <- log10(heights)
 logHeights[which(!is.finite(logHeights))]<-0
 plot(h$mids+0.5,log10(h$counts),pch=19,type="n",ylab="log(# of strains)",xlab="# of experiments resistant",xlim=c(0,450)) #set axes etc
-rect(h$mids,0,h$mids+1,logHeights,col="grey")
+rect(h$mids,0,h$mids+1,logHeights,col="grey",border="grey")
 arrows(h$mids+.5,log10(ll),h$mids+.5,log10(ul),code=0,angle=90)
-points(h$mids+0.5,log10(h$counts),pch=19,type="o")
+points(h$mids+0.5,log10(h$counts),pch=19)
 dev.off()
   #remove ORFs with multidrug resistance as possibly carrying secondary mutations
-notTrusted<-which(filteredORFs>200)
+#use therio
+#notTrusted<-which(filteredORFs>200)
+#write.table(hop[notTrusted,1],file="~/projects/yeastOverdominance/collection/Hoepfner/HopNotTrusted.dat",quote=F,row.names=F,col.names=F)
         
 #second pass: dubious and random sets
 #-----------------------------------
@@ -883,16 +1078,23 @@ for(i in unq){ #for each combination.
    HomDelZ <- which(hopColumnZ<nss[counter,7])
    HomDeleterious <- intersect(HomDel,HomDelZ)
    HomDeleterious <- setdiff(HomDeleterious,notTrusted)
+
+   #remove from YPD del and YPD ben
+   YPDdel.hetBen <- which(HetBeneficial %in% YPDdel[,1])
+   YPDben.hetBen <- which(HetBeneficial %in% YPDben[,1])
+   HetBeneficial <- setdiff(HetBeneficial,YPDdel.hetBen)
+   HetBeneficial <- setdiff(HetBeneficial,YPDben.hetBen)
    
    #extreme overdominant
    eo <- intersect(HetBeneficial,HomDeleterious)
-   
+  
    #save ORFs in file for HetBeneficial and eo
 
    fileName <- paste(titleString,".",concentration,sep="")
    fileName <- gsub("/","_",fileName)
    condNames <- append(condNames,as.character(titleString))
    concs <- append(concs,concentration)
+   
    write.table(hip[HetBeneficial,1],file=paste("~/projects/yeastOverdominance/collection/Hoepfner/odORFs/",fileName,"hetBen.dat",sep=""),row.names=F,col.names=F)
    write.table(hip[eo,1],file=paste("~/projects/yeastOverdominance/collection/Hoepfner/odORFs/",fileName,"eo.dat",sep=""),row.names=F,col.names=F)
 
@@ -975,23 +1177,45 @@ for(i in unq){ #for each combination.
 
 
 #compare ranges by comparing proportion of hetben hetdel homben homdel
-colSums((nsum[,c(1:4)]-dsum[,c(1:4)])>0)/totalL*100
-colSums((nsum[,c(1:4)]-rsum[,c(1:4)])>0)/totalL*100
-colSums((dsum[,c(1:4)]-rsum[,c(1:4)])>0)/totalL*100
+colSums((nsum[,c(1:4)]-dsum[,c(1:4)])<0)/totalL*100 #neutral - dubious
+colSums((nsum[,c(1:4)]-rsum[,c(1:4)])<0)/totalL*100 #neutral - random
+colSums((dsum[,c(1:4)]-rsum[,c(1:4)])<0)/totalL*100 #dubious - random
 
- 56.52510 53.28185 71.11969 79.49807
- 56.71815 54.74903 73.62934 81.73745
- 46.91120 51.00386 61.93050 64.63320
- 
+#[1] 44.47876 46.94981 29.80695 20.69498
+#[1] 43.47490 45.55985 26.67954 18.49421
+#[1] 51.50579 48.33977 36.79537 33.89961
+
+ ## 56.52510 53.28185 71.11969 79.49807
+ ## 56.71815 54.74903 73.62934 81.73745
+ ## 46.91120 51.00386 61.93050 64.63320
+
+
+
+#######>>>>>>>>>>mexri edo meta to 666 <<<<<<<,,
 #mean percentage of het. beneficial across conditions
 mean(nsum[,1])/length(hip[,1])*100
+#[1] 4.397615
 
 #mean percentage of extreme overdominance
-mean(nsum[,5]/nsum[,1])
+mean(nsum[,5]/nsum[,1])*100
+#[1] 3.911677
 
-eoH<-data.frame(condNames,concs,nsum[,5]/nsum[,1])
+hetben   eo
+eoH<-data.frame(condNames,concs,nsum[,5]/nsum[,1],nsum[,1],nsum[,5])
 eoH[order(eoH[,3]),]
-write.csv(eoH,file="~/projects/yeastOverdominance/collection/Hoepfner/odRatio.csv")
+write.csv(eoH,file="~/projects/yeastOverdominance/collection/Hoepfner/odRatio.csv",row.names=F)
+l <- length(eoH[,1])
+pdf("eoRatioHoepfner.pdf")
+par(las=1,bty="l")
+orderedHo <- eoH[order(eoH[,3]),]
+ci <- binom.confint(orderedHo[,5],orderedHo[,4],method="exact")
+plot(orderedHo[,3]*100,ylab="extreme overdominance (%)",xlab="conditions",type="l",ylim=c(0,30))
+polygon(c(c(1:l),c(l:1)),c(ci$lower,rev(ci$upper))*100,col="grey60",border=NA)
+points(orderedHo[,3]*100,type="l",lwd=2)
+dev.off()
+
+#fourth pass
+#-----------
 
 
 # Overlap of hetBen across experiments
@@ -1149,7 +1373,6 @@ fileHop[24] <- "Zinc Chloride.40000hetBen.dat"
 compoundHop <- c("AclacinomycinA","CoCl2","CoCl2","CuSO4","CuSO4","CuSO4","CuSO4","Cycloheximide","Cycloheximide","Latrunculin","Latrunculin","Mechlorethamine","HgCl2","HgCl2","Methotrexate","MycophenolicAcid","MycophenolicAcid","MycophenolicAcid","Rapamycin","Rapamycin","Rapamycin","ZnCl2","ZnCl2","ZnCl2")
 
 #pick one file from each dataset and calculate overlap
-
 overlap <- function(fileHil,fileHop){
     ORFHil1 <- read.table(paste(pathHil,fileHil,sep=""))
     ORFHop1 <- read.table(paste(pathHop,fileHop,sep=""))
@@ -1239,6 +1462,11 @@ g2b <- read.table(paste(path,"D-Glucose (starvation).0.5hetBen.dat",sep=""))
 g3o <- read.table(paste(path,"D-Glucose (starvation).0.75eo.dat",sep=""))
 g3b <- read.table(paste(path,"D-Glucose (starvation).0.75hetBen.dat",sep=""))
 ks <- read.table("~/projects/yeastOverdominance/chemostat/sequencing/colony/mutations/hapdip/systName.csv",sep="\t")
+#list of mutated genes in experimental evolution
+systN <- c("YDL194W","YDL190C","YDR211W","YDR443C","YEL035C","YER157W","YFR020W","YGL023","YHR120W","YJL190C","YMR240C","HXT6","HXT7")
+
+shortN <- c("SNF3","UFD2","GCD6","SSN2","UTR5","YER157W","YFR020W","YGL023","YHR120W","YJL190C","YMR240C","HXT6","HXT7")
+
 
 intersect(g1b$V1,ks$V1)
 [1] "YDL194W" "YER133W" "YJR115W" "YPR049C"
@@ -1256,7 +1484,163 @@ also MIG2/YGL209W present
 > intersect(g2o$V1,g3o$V1)
 [1] "YER017C"
 > 
-
+intersect(systN,g1b$V1)
+YDL194W #SNF3
+intersect(systN,g2b$V1)
+intersect(systN,g3b$V1)
 
 #           AFG3 common in all
 #  YER017C
+
+#make plots for D-Glucose 
+which(condNames=="D-Glucose (starvation)")
+956 1073 2099
+
+counter <- 2099
+i<-unq[counter]
+STD1<-5800
+SNF3<- 1018
+i
+
+pdf("temp.pdf")
+par(mfcol=c(2,2))
+                                        #plot
+plot(hipColumnZ,hipColumn,cex=0.5,col="#00000070",main=paste("HIP",titleString),pch=19)
+points(hipColumnZ[HetBeneficial],hipColumn[HetBeneficial],col="#ff000060",pch=19)
+points(hipColumnZ[HomDeleterious],hipColumn[HomDeleterious],col="#0000ff60",pch=19)
+points(hipColumnZ[SNF3],hipColumn[SNF3],col="#00ff0099",pch=19)
+
+abline(h=nss[counter,c(1,2)],col="red")
+abline(v=nss[counter,c(3,4)],col="red")
+abline(a=0,b=1)       
+
+plot(hopColumnZ,hopColumn,cex=0.5,col="#00000070",main=paste("HOP",titleString),pch=19)
+points(hopColumnZ[HetBeneficial],hopColumn[HetBeneficial],col="#ff000060",pch=19)
+points(hopColumnZ[HomDeleterious],hopColumn[HomDeleterious],col="#0000ff60",pch=19)
+
+points(hopColumnZ[SNF3],hopColumn[SNF3],col="#00ff0099",pch=19)
+
+abline(h=nss[counter,c(5,6)],col="red")
+abline(v=nss[counter,c(7,8)],col="red")
+abline(a=0,b=1)       
+dev.off()
+
+
+
+#make  plots for CuSO4
+#CuSO4 in Hoepfner
+which(grepl("Copper",condNames))
+709  840 1819 2154
+
+counter <- 709
+i<-unq[counter]
+
+
+source("~/projects/fgmo/colors.R")
+pdf("HopCuSO4.pdf",width=10,height=6)
+par(mfrow=c(1,2),bty="l",lwd=2,las=1)
+alpha <- "ff"
+                                        #plot
+plot(hipColumnZ,hipColumn,cex=1,col="#00000040",main="Heterozygous",pch=19,xlim=c(-4,4),ylim=c(-10,10),xlab="z-score", ylab="sensitivity")
+points(hipColumnZ[HetBeneficial],hipColumn[HetBeneficial],col=paste(cgreen4,alpha,sep=""),pch=19)
+abline(h=nss[counter,c(1,2)],col="brown",lty=2)
+abline(v=nss[counter,c(3,4)],col="brown",lty=2)
+abline(a=0,b=1)       
+points(hipColumnZ[eo],hipColumn[eo],col=paste(dblue,"aa",sep=""),pch=19)
+
+plot(hopColumnZ,hopColumn,cex=1,col="#00000040",main="Homozygous",pch=19,xlab="z-score", ylab="sensitivity",xlim=c(-4,4),ylim=c(-10,10))
+points(hopColumnZ[HetBeneficial],hopColumn[HetBeneficial],col=paste(cgreen4,alpha,sep=""),pch=19)
+abline(h=nss[counter,c(5,6)],col="brown",lty=2)
+abline(v=nss[counter,c(7,8)],col="brown",lty=2)
+abline(a=0,b=1)
+points(hopColumnZ[eo],hopColumn[eo],col=paste(dblue,"aa",sep=""),pch=19)
+dev.off()
+
+
+# print summary of common conditions across datasets
+#common conditions
+pathHop <- "~/projects/yeastOverdominance/collection/Hoepfner/odORFs/"
+pathHil <- "~/projects/yeastOverdominance/collection/analysis/odORFs/"
+fileHil <- numeric()
+fileHop <- numeric()
+
+fileHil[1] <- "ACLACINOMYCINA20newscanner"
+fileHil[2] <- "COCL220newscanner"
+fileHil[3] <- "CUSO420newscanner"
+fileHil[4] <- "CYCLOHEXIMIDE20newscanner"
+fileHil[5] <- "LATRUNCULIN20newscanner"
+fileHil[6] <- "MECHLORETHAMINE20oldscanner"
+fileHil[7] <- "HGCL220newscanner"
+fileHil[8] <- "METHOTREXATE20oldscanner"
+fileHil[9] <- "MYCOPHENOLICACID20oldscanner"
+fileHil[10] <- "RAPAMYCIN20newscanner"
+fileHil[11] <- "ZNCL220newscanner"
+compoundHil <- c("AclacinomycinA","CoCl2","CuSO4","Cycloheximide","Latrunculin","Mechlorethamine","HgCl2","Methotrexate","MycophenolicAcid","Rapamycin","ZnCl2")
+
+fileHop[1] <- "Aclacinomycin A, Aclarubicin.4.857"
+fileHop[2] <- "Cobalt(Il)-Chlorid.200"
+fileHop[3] <- "Cobalt(Il)-Chlorid.92.63"
+fileHop[4] <- "Copper(II)Sulfate.120"
+fileHop[5] <- "Copper(II)Sulfate.200"
+fileHop[6] <- "Copper(II)Sulfate.50"
+fileHop[7] <- "Copper(II)Sulfate.75"
+fileHop[8] <- "Cycloheximide.0.03"
+fileHop[9] <- "Cycloheximide.0.05"
+fileHop[10] <- "Latrunculin A.0.7"
+fileHop[11] <- "Latrunculin A.0.9"
+fileHop[12] <- "Mechlorethamine.95"
+fileHop[13] <- "Mercury(II) chloride.35"
+fileHop[14] <- "Mercury(II) chloride.50"
+fileHop[15] <- "Methotrexate.200"
+fileHop[16] <- "Mycophenolic Acid (Myfortic).100"
+fileHop[17] <- "Mycophenolic Acid (Myfortic).120"
+fileHop[18] <- "Mycophenolic Acid (Myfortic).70"
+fileHop[19] <- "Rapamycin.0.001"
+fileHop[20] <- "Rapamycin.2e-04"
+fileHop[21] <- "Rapamycin.5e-04"
+fileHop[22] <- "Zinc Chloride.20000"
+fileHop[23] <- "Zinc Chloride.200"
+fileHop[24] <- "Zinc Chloride.40000"
+compoundHop <- c("AclacinomycinA","CoCl2","CoCl2","CuSO4","CuSO4","CuSO4","CuSO4","Cycloheximide","Cycloheximide","Latrunculin","Latrunculin","Mechlorethamine","HgCl2","HgCl2","Methotrexate","MycophenolicAcid","MycophenolicAcid","MycophenolicAcid","Rapamycin","Rapamycin","Rapamycin","ZnCl2","ZnCl2","ZnCl2")
+
+library(binom)
+for (i in c(1:length(compoundHil))){
+    arpa <- try(ORFHilhb <- read.table(paste(pathHil,fileHil[i],"hetBen.dat",sep="")))
+    if(inherits(arpa,"try-error")){
+        HilHb <- 0
+    }else{
+        HilHb <- length(ORFHilhb[,1])
+    }
+    arpa <- try(ORFHileo <- read.table(paste(pathHil,fileHil[i],"eo.dat",sep="")))
+    if(inherits(arpa,"try-error")){
+        Hileo <- 0
+    }else{
+        Hileo <- length(ORFHileo[,1])
+    }
+    HilBinom <- binom.confint(Hileo,HilHb,method="exact")
+    for(j in which(compoundHop==compoundHil[i])){
+        arpa <- try(ORFHophb <- read.table(paste(pathHop,fileHop[j],"hetBen.dat",sep="")))
+        if(inherits(arpa,"try-error")){
+            HopHb <- 0
+        }else{
+            HopHb <- length(ORFHophb[,1])
+        }
+        arpa <- try(ORFHopeo <- read.table(paste(pathHop,fileHop[j],"eo.dat",sep="")))
+        if(inherits(arpa,"try-error")){
+            Hopeo <- 0
+        }else{
+            Hopeo <- length(ORFHileo[,1])
+        }
+        HopBinom <- binom.confint(Hopeo,HopHb,method="exact")
+#        print(paste(fileHil[i],fileHop[j],Hileo/HilHb*100,HilBinom$lower*100,HilBinom$upper*100,Hopeo/HopHb*100,HopBinom$lower*100,HopBinom$upper*100),sep="\t")
+        print(paste(fileHil[i],fileHop[j],HilHb,HopHb))
+    }
+}
+
+#subsample ORFs
+pick random 60 from neutral ORFs set
+use them to calculate
+1. extreme overdominance in the rest of the 60 
+2. and in 60 other random ORFs
+we expect that 1. will be much lower than 2.
+in a fourth pass
