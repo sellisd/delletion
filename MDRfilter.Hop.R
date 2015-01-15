@@ -87,8 +87,9 @@ notTrusted.Hop <- hop[which(filteredORFs>200),1]
 write.table(notTrusted.Hop,file="~/projects/yeastOverdominance/collection/data/notTrusted.Hop.dat",quote=FALSE, row.names=FALSE, col.names=FALSE)
 
 # make MDR plot
-setEPS()
-postscript("~/projects/yeastOverdominance/collection/report/figures/Hop.MDR.eps")
+#setEPS()
+#postscript("~/projects/yeastOverdominance/collection/report/figures/Hop.MDR.eps")
+png("~/projects/yeastOverdominance/collection/report/figures/Hop.MDR.png")
 par(las=1,bty="l")
 heights <- numeric(0)
 ul <- numeric(0)

@@ -87,8 +87,9 @@ notTrusted.Hil <- names(mdr.Hil)[mdr.Hil>10]
 write.table(notTrusted.Hil,file="~/projects/yeastOverdominance/collection/data/notTrusted.Hil.dat",quote=FALSE, row.names=FALSE, col.names=FALSE)
 
 # make MDR plot
-setEPS()
-postscript("~/projects/yeastOverdominance/collection/report/figures/Hil.MDR.eps")
+#setEPS()
+#postscript("~/projects/yeastOverdominance/collection/report/figures/Hil.MDR.eps")
+png("~/projects/yeastOverdominance/collection/report/figures/Hil.MDR.png")
 par(las=1,bty="l")
 heights <- numeric(0)
 ul <- numeric(0)
