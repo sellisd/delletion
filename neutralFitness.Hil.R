@@ -6,6 +6,13 @@ conditions <- read.table("~/projects/yeastOverdominance/collection/analysis/cond
 dubious<-read.table("~/projects/yeastOverdominance/collection/Agrawal.Whitlock/dubious120.csv",header=T)
 allDubious <-read.table("~/projects/yeastOverdominance/collection/sgd/dubious.tsv",sep="\t") # all dubious ORFs
 
+# remove from dubious not trusted
+
+notTrusted.Hil <- read.table("~/projects/yeastOverdominance/collection/data/notTrusted.Hil.dat")
+notTrusted.Hop <- read.table("~/projects/yeastOverdominance/collection/data/notTrusted.Hop.dat")
+therio <- union(notTrusted.Hil$V1,notTrusted.Hop$V1)
+neutral <- dubious[which(!dubious[,1] %in% therio),1] # neutral set without not trusted
+
 ruahet <-numeric(0)
 rdahet <-numeric(0)
 rushet <-numeric(0)
@@ -45,16 +52,16 @@ for(i in conditions$V1){
     us$V1 <- str_extract(us$V1,"[^:]*")
     da$V1 <- str_extract(da$V1,"[^:]*")
     ds$V1 <- str_extract(ds$V1,"[^:]*") 
-    ua.ind<-which(ua$V1%in%dubious$dubiousORFS.Whitlock)
-    da.ind<-which(da$V1%in%dubious$dubiousORFS.Whitlock)
-    us.ind<-which(us$V1%in%dubious$dubiousORFS.Whitlock)
-    ds.ind<-which(ds$V1%in%dubious$dubiousORFS.Whitlock)
+    ua.ind<-which(ua$V1%in%neutral)
+    da.ind<-which(da$V1%in%neutral)
+    us.ind<-which(us$V1%in%neutral)
+    ds.ind<-which(ds$V1%in%neutral)
 
                                         # confidence intervals from the manually curated set of 120 dubious ORFs
-    ua.ind <- which(ua$V1%in%dubious$dubiousORFS.Whitlock)
-    da.ind <- which(da$V1%in%dubious$dubiousORFS.Whitlock)
-    us.ind <- which(us$V1%in%dubious$dubiousORFS.Whitlock)
-    ds.ind <- which(ds$V1%in%dubious$dubiousORFS.Whitlock)
+    ua.ind <- which(ua$V1%in%neutral)
+    da.ind <- which(da$V1%in%neutral)
+    us.ind <- which(us$V1%in%neutral)
+    ds.ind <- which(ds$V1%in%neutral)
 
     ua.hetD <- quantile(ua$V3[ua.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)
     ua.homD <- quantile(ua$V2[ua.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)

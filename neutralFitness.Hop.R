@@ -5,7 +5,13 @@ hip<-read.csv("~/projects/yeastOverdominance/collection/Hoepfner/HIP_scores.txt"
 hop<-read.csv("~/projects/yeastOverdominance/collection/Hoepfner/HOP_scores.txt",sep="\t",nrows=6681,comment.char="",colClasses=c("character",rep("numeric",5846)))
 allDubious <-read.table("~/projects/yeastOverdominance/collection/sgd/dubious.tsv",sep="\t") # all dubious ORFs
 d<-read.table("~/projects/yeastOverdominance/collection/Agrawal.Whitlock/dubious120.csv",header=T)
-dI<-which(hop[,1]%in%d[,1]) # 120 neutrals
+
+notTrusted.Hil <- read.table("~/projects/yeastOverdominance/collection/data/notTrusted.Hil.dat")
+notTrusted.Hop <- read.table("~/projects/yeastOverdominance/collection/data/notTrusted.Hop.dat")
+therio <- union(notTrusted.Hil$V1,notTrusted.Hop$V1)
+neutral <- d[which(!d[,1]%in%therio),1] # neutral set without not trusted
+dI<-which(hop[,1]%in%neutral) # neutrals
+#neutral set without not trusted
 
 m<-read.table("~/projects/yeastOverdominance/collection/Hoepfner/groups.dat")
 unq <- unique(paste(m$V1,m$V2)) #unique combinations of compound and concentration

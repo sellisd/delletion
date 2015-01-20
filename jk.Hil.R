@@ -8,12 +8,13 @@ dubious<-read.table("~/projects/yeastOverdominance/collection/Agrawal.Whitlock/d
 YPDdel <- read.csv("~/projects/yeastOverdominance/collection/Deutschbauer_etal/TableS2.csv")
 YPDben <- read.csv("~/projects/yeastOverdominance/collection/Sliwa_Korona/adaptive",header=FALSE)
 
-minBarNo <- 1 # >minBarNo should be available for each gene 
+minBarNo <- 1 # >minBarNo should be availab.le for each gene 
 maxJ <- 1000 # number of jackknife resampling
 
 notTrusted.Hil <- read.table("~/projects/yeastOverdominance/collection/data/notTrusted.Hil.dat")
 notTrusted.Hop <- read.table("~/projects/yeastOverdominance/collection/data/notTrusted.Hop.dat")
 therio <- union(notTrusted.Hil$V1,notTrusted.Hop$V1)
+neutral <- dubious[which(!dubious[,1] %in% therio),1] # neutral set without not trusted
 
 Weo <- numeric(0)
 Whb <- numeric(0)
@@ -33,13 +34,13 @@ for(i in conditions$V1){
     hetBenLR <- numeric(0)
     totalLN <- numeric(0)
     for (j in c(1:maxJ)){
-        halph <- sample(dubious$dubiousORFS.Whitlock,60)  # subsample 60 from neutral set
-        rest <- setdiff(dubious$dubiousORFS.Whitlock,halph) #the rest
-        rrest <- sample(setdiff(allORF,halph),60) #random other
-        ua.ind<-which(ua$V1%in%halph)
-        da.ind<-which(da$V1%in%halph)
-        us.ind<-which(us$V1%in%halph)
-        ds.ind<-which(ds$V1%in%halph)
+        half <- sample(neutral,60)  # subsample 60 from neutral set
+        rest <- setdiff(neutral,half) #the rest
+        rrest <- sample(setdiff(allORF,half),60) #random other
+        ua.ind<-which(ua$V1%in%half)
+        da.ind<-which(da$V1%in%half)
+        us.ind<-which(us$V1%in%half)
+        ds.ind<-which(ds$V1%in%half)
 
         ua.hetD <- quantile(ua$V3[ua.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)
         ua.homD <- quantile(ua$V2[ua.ind],probs=c(.05,0.5,.95),na.rm=T,names=F)
