@@ -29,7 +29,7 @@ for(i in conditions$V1){
     ds$V1 <- str_extract(ds$V1,"[^:]*")
     allORF <- unique(intersect(intersect(ua$V1,us$V1),intersect(da$V1,ds$V1)))
     #exclude not Trusted from allORF for the calculation of rrest
-    allORF <- which(!allORF %in% therio)
+    allORF <- allORF[which(!allORF %in% therio)]
     eoLN <- numeric(0)
     hetBenLN <- numeric(0)
     eoLR <- numeric(0)

@@ -29,7 +29,7 @@ allORF <- which(!allORF %in% therio) # exclude
 counter <- 1
 Weo <- numeric(0)
 Whb <- numeric(0)
-for(i in unq[1:10]){ #for each combination of compound and condition
+for(i in unq){ #for each combination of compound and condition
   row.index <- which(paste(m$V1,m$V2)==i)
   hipi  <- m[row.index,4] == "HIP" & m[row.index,3] == 0
   hipZi <- m[row.index,4] == "HIP" & m[row.index,3] == 1
@@ -105,31 +105,19 @@ for(i in unq[1:10]){ #for each combination of compound and condition
   }
   Weo <- append(Weo,wilcox.test(eoLN,eoLR,alternative="less")$p.value)
   Whb <- append(Whb,wilcox.test(hetBenLN,hetBenLR,alternative="less")$p.value)
-  print(paste(i))
-  summary(eoLR)
-  
-
+  print(paste(counter, i))
   counter <- counter + 1
 }
-#     calculate eo with rest (N) and rrest (R)
-#     append in data structure
-#   compare N and R
-#adjust for multiple testing and report p.values
 
-
-plot(hipColumn,hipColumnZ,pch=19,cex=0.3,col="#00000050",xlim=c(-6,2))
-points(hipColumn[half],hipColumnZ[half],pch=19,cex=0.5,col="#ff000050")
-points(hipColumn[rest],hipColumnZ[rest],pch=19,cex=0.5,col="#0000ff50")
-points(hipColumn[rrest],hipColumnZ[rrest],pch=19,cex=0.5,col="#00ff0050")
-abline(v=nss[counter,1:2])
-abline(h=nss[counter,3:4])
-points(hipColumn[eo],hipColumnZ[eo],pch=1,col="#aaaa00")
-maxJ
-for (j in c(1:maxJ)){ #   for maxJ
-  half <- sample(dI,60)  # subsample 60 from neutral set
-  rest <- setdiff(dI,half) #the rest
-  rrest <- sample(setdiff(allORF,half),60) #random other (but not the excluded ones)
-  points(hipColumn[half],hipColumnZ[half],pch=19,cex=0.5,col="#ff000050")
-  points(hipColumn[rest],hipColumnZ[rest],pch=19,cex=0.5,col="#0000ff50")
-  points(hipColumn[rrest],hipColumnZ[rrest],pch=19,cex=0.5,col="#00ff0050")
+if(0){
+    plot(hipColumn,hipColumnZ,pch=19,cex=0.3,col="#00000050",xlim=c(-6,2))
+    points(hipColumn[half],hipColumnZ[half],pch=19,cex=0.5,col="#ff000050")
+    points(hipColumn[rest],hipColumnZ[rest],pch=19,cex=0.5,col="#0000ff50")
+    points(hipColumn[rrest],hipColumnZ[rrest],pch=19,cex=0.5,col="#00ff0050")
+    abline(v=nss[counter,1:2])
+    abline(h=nss[counter,3:4])
+    points(hipColumn[eo],hipColumnZ[eo],pch=1,col="#aaaa00")
 }
+
+# save
+write.table(data.frame(Weo,Whb),file="~/projects/yeastOverdominance/collection/data/jk.Hop.dat",quote=FALSE,row.names=FALSE, col.names=TRUE)
