@@ -28,14 +28,16 @@ for(i in conditions$V1){
     da$V1 <- str_extract(da$V1,"[^:]*")
     ds$V1 <- str_extract(ds$V1,"[^:]*")
     allORF <- unique(intersect(intersect(ua$V1,us$V1),intersect(da$V1,ds$V1)))
+    #exclude not Trusted from allORF for the calculation of rrest
+    allORF <- which(!allORF %in% therio)
     eoLN <- numeric(0)
     hetBenLN <- numeric(0)
     eoLR <- numeric(0)
     hetBenLR <- numeric(0)
     totalLN <- numeric(0)
     for (j in c(1:maxJ)){
-        half <- sample(neutral,60)  # subsample 60 from neutral set
-        rest <- setdiff(neutral,half) #the rest
+        half <- sample(neutral,55)  # subsample 55 from neutral set
+        rest <- setdiff(neutral,half) #the rest 60
         rrest <- sample(setdiff(allORF,half),60) #random other
         ua.ind<-which(ua$V1%in%half)
         da.ind<-which(da$V1%in%half)
@@ -112,4 +114,4 @@ for(i in conditions$V1){
 }
 
 # save
-write.table(data.frame(conditions=conditions$V1,Weo,Whb),file="~/projects/yeastOverdominance/collection/data/jk.Hil.dat",quote=FALSE,row.names=FALSE, col.names=FALSE)
+write.table(data.frame(conditions=conditions$V1,Weo,Whb),file="~/projects/yeastOverdominance/collection/data/jk.Hil.dat",quote=FALSE,row.names=FALSE, col.names=TRUE)

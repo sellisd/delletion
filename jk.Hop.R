@@ -19,13 +19,13 @@ unq <- unique(paste(m$V1,m$V2)) #unique combinations of compound and concentrat
 notTrusted.Hil <- read.table("~/projects/yeastOverdominance/collection/data/notTrusted.Hil.dat")
 notTrusted.Hop <- read.table("~/projects/yeastOverdominance/collection/data/notTrusted.Hop.dat")
 therio <- union(notTrusted.Hil$V1,notTrusted.Hop$V1)
-neutral <- d[which(!d[,1]%in%thrio),1] # neutral set without not trusted
+neutral <- d[which(!d[,1]%in%therio),1] # neutral set without not trusted
 dI<-which(hop[,1]%in%neutral) # neutral set without not trusted
 
 # which gene deletions are not to be trusted
 filterOut <- which(hop[,1] %in% therio)
 allORF <- hop[,1]
-allORF <- which(allORF %in% therio)
+allORF <- which(!allORF %in% therio) # exclude
 counter <- 1
 Weo <- numeric(0)
 Whb <- numeric(0)
@@ -65,8 +65,8 @@ for(i in unq[1:10]){ #for each combination of compound and condition
   eoLR <- numeric(0)
   hetBenLR <- numeric(0)
   for (j in c(1:maxJ)){ #   for maxJ
-    half <- sample(dI,60)  # subsample 60 from neutral set
-    rest <- setdiff(dI,half) #the rest
+    half <- sample(dI,60)  # subsample 55 from neutral set
+    rest <- setdiff(dI,half) # the rest 60
     rrest <- sample(setdiff(allORF,half),60) #random other (but not the excluded ones)
     # calculate hetBen, hetBenZ, homDel, homDelZ
     HetBen <- which(hipColumn>nss[counter,2])
@@ -108,7 +108,7 @@ for(i in unq[1:10]){ #for each combination of compound and condition
   print(paste(i))
   summary(eoLR)
   
-  
+
   counter <- counter + 1
 }
 #     calculate eo with rest (N) and rrest (R)
@@ -124,4 +124,12 @@ points(hipColumn[rrest],hipColumnZ[rrest],pch=19,cex=0.5,col="#00ff0050")
 abline(v=nss[counter,1:2])
 abline(h=nss[counter,3:4])
 points(hipColumn[eo],hipColumnZ[eo],pch=1,col="#aaaa00")
-
+maxJ
+for (j in c(1:maxJ)){ #   for maxJ
+  half <- sample(dI,60)  # subsample 60 from neutral set
+  rest <- setdiff(dI,half) #the rest
+  rrest <- sample(setdiff(allORF,half),60) #random other (but not the excluded ones)
+  points(hipColumn[half],hipColumnZ[half],pch=19,cex=0.5,col="#ff000050")
+  points(hipColumn[rest],hipColumnZ[rest],pch=19,cex=0.5,col="#0000ff50")
+  points(hipColumn[rrest],hipColumnZ[rrest],pch=19,cex=0.5,col="#00ff0050")
+}
