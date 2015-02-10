@@ -12,6 +12,11 @@ load("~/projects/yeastOverdominance/collection/data/nss.dat")
 load("~/projects/yeastOverdominance/collection/data/dss.dat")
 load("~/projects/yeastOverdominance/collection/data/rss.dat")
 
+notTrusted.Hil <- read.table("~/projects/yeastOverdominance/collection/data/notTrusted.Hil.dat")
+notTrusted.Hop <- read.table("~/projects/yeastOverdominance/collection/data/notTrusted.Hop.dat")
+therio <- union(notTrusted.Hil$V1,notTrusted.Hop$V1)
+
+
 totalL<-length(unq)
 nsum <- matrix(nrow=totalL,ncol=5)
 dsum <- matrix(nrow=totalL,ncol=5)
@@ -165,7 +170,9 @@ for(i in unq){ #for each combination.
 save(nsum,file="~/projects/yeastOverdominance/collection/data/nsum.dat")
 save(dsum,file="~/projects/yeastOverdominance/collection/data/dsum.dat")
 save(rsum,file="~/projects/yeastOverdominance/collection/data/rsum.dat")
-
+save(condNames,file="~/projects/yeastOverdominance/collection/data/condNames.dat")
+save(concs,file="~/projects/yeastOverdominance/collection/data/concs.dat")
+save(condID,file="~/projects/yeastOverdominance/collection/data/condID.dat")
 
 
 
