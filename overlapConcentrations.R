@@ -17,31 +17,37 @@ for(f in files){
 }
 
 filesD <- which(duplicated(conditions))
-#perform 10000 bootstrap measurements, to measure overlap across measurements with the same compound
+
+# calculate overlap in all possible combinations of files with shared compound
+#for each duplicate conditions
 bcomSame <- numeric(0)
+for(duplCond in unique(conditions[filesD])){
+    pairs <- combn(which(conditions==duplCond),2) # find all combinations
+                                        #for each combination
+    for(combination in c(1:ncol(pairs))){
+        pair <- pairs[,combination]
+        fileA <- read.table(paste(path,files[pair[1]],sep=""))
+        fileB <- read.table(paste(path,files[pair[2]],sep=""))
+        bcomSame <- append(bcomSame,length(intersect(fileA[,1],fileB[,1]))/length(union(fileA[,1],fileB[,1])))
+   }
+}
+
+#for all combinations combn(x,2)
+# calculate overlap
+
+                                        #perform 10000 bootstrap measurements, to measure overlap across measurements with the same compound
 bcomDiff <- numeric(0)
-bootNumberShared <- bootstraps
-bootNumberNShared <- bootNumberShared
-while((bootNumberShared > 0) | (bootNumberNShared > 0)){
+bootNumber <- 10000
+while(bootNumber > 0){
   pair <- sample(filesD,2) #pick a pair of files
   compoundA <- strsplit(files[pair[1]],".",fixed=T)[[1]][1]
   compoundB <- strsplit(files[pair[2]],".",fixed=T)[[1]][1]
-  if(compoundA == compoundB){
-    if(bootNumberShared>0){
-      fileA <- read.table(paste(path,files[pair[1]],sep=""))
-      fileB <- read.table(paste(path,files[pair[2]],sep=""))
-      bcomSame <- append(bcomSame,length(intersect(fileA[,1],fileB[,1]))/length(union(fileA[,1],fileB[,1])))
-      bootNumberShared <- bootNumberShared - 1  
-      print(paste(bootNumberShared,bootNumberNShared))
-    }
-  }else{  
-    if(bootNumberNShared>0){
+  if(compoundA != compoundB){
       fileA <- read.table(paste(path,files[pair[1]],sep=""))
       fileB <- read.table(paste(path,files[pair[2]],sep=""))
       bcomDiff <- append(bcomDiff,length(intersect(fileA[,1],fileB[,1]))/length(union(fileA[,1],fileB[,1])))
-      bootNumberNShared <- bootNumberNShared - 1
-      print(paste(bootNumberShared,bootNumberNShared))
-    }    
+      bootNumber <- bootNumber - 1
+      print(bootNumber)
   }
 }
 

@@ -19,16 +19,24 @@ env <- c("23DEGREESC","23DEGREESC","37DEGREESC","37DEGREESC","5FLUOROURACIL","5F
 #pick random 2 with the same condition but different generation and caclulate overlap
 bcomSame <- numeric(0)
 bootNumber <- bootstraps
-while(bootNumber > 0){
-  pair <- sample(length(files),2) #pick a pair of files (without replacements)
-  if(env[pair[1]]==env[pair[2]]){ #same condition
+# combinations
+pairs <- list(c(1,2),  # 23C
+              c(3,4),  # 37C
+              c(5,6),  # 5-fluorouracil
+              c(5,7),
+              c(6,7),
+              c(8,9),  # floxuridine
+              c(10,11) # YPG
+              )
+n <- numeric(0)
+for(pair in pairs){
+    print(paste(env[pair[1]],env[pair[2]]))
     fileA <- read.table(files[pair[1]])
     fileB <- read.table(files[pair[2]])
-    bcomSame <- append(bcomSame,length(intersect(fileA[,1],fileB[,1]))/length(union(fileA[,1],fileB[,1])))
-    bootNumber <- bootNumber - 1
-    print(bootNumber)
-  }
+    bcomSame <- append(bcomSame,length(intersect(fileA[,1],fileB[,1]))/n)
+    n <- append(n,length(union(fileA[,1],fileB[,1])))
 }
+
 #pick random 2 with different condition
 bcomDiff <- numeric(0)
 bootNumber <- bootstraps
